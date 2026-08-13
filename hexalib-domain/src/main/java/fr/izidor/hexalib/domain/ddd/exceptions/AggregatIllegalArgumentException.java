@@ -1,0 +1,9 @@
+package fr.izidor.hexalib.domain.ddd.exceptions;
+
+public class AggregatIllegalArgumentException extends AggregatException {
+
+    public AggregatIllegalArgumentException(Class<?> aggregateClass, String message) {
+        super(aggregateClass, CodeException.BAD_REQUEST_400, message);
+    }
+
+}
