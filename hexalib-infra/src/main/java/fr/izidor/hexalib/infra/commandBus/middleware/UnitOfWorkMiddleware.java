@@ -4,7 +4,7 @@ import fr.izidor.hexalib.infra.applicationCommand.ApplicationCommand;
 import fr.izidor.hexalib.infra.applicationResult.ErrorResult;
 import fr.izidor.hexalib.infra.applicationResult.ExecutionResult;
 import fr.izidor.hexalib.infra.commandBus.CommandBusMiddleware;
-import fr.izidor.hexalib.domain.ddd.exceptions.AggregatException;
+import fr.izidor.hexalib.domain.ddd.exceptions.aggregatException.AggregatException;
 import fr.izidor.hexalib.domain.ddd.exceptions.CodeException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

@@ -5,5 +5,6 @@ public enum CodeException {
     UNAUTHORIZED_401,
     FORBIDDEN_403,
     NOT_FOUND_404,
+    CONFLICT_409,
     INTERNAL_ERROR_500
 }

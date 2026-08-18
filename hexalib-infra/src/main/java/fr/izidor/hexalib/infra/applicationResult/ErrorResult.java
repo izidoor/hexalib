@@ -12,10 +12,14 @@ public record ErrorResult (
         String commandId,
         String userId,
         CodeException codeException,
-        String error,
-        boolean isSuccess
+        String error
 
 ) implements ExecutionResult {
+
+    @Override
+    public boolean isSuccess() {
+        return false;
+    }
 
 
 
@@ -29,7 +33,6 @@ public record ErrorResult (
                 .userId(applicationCommand.userId())
                 .codeException(codeException)
                 .error(errorMsg)
-                .isSuccess(false)
                 .build();
     }
 

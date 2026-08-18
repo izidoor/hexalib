@@ -1,9 +1,11 @@
-package fr.izidor.hexalib.domain.ddd.exceptions;
+package fr.izidor.hexalib.domain.ddd.exceptions.aggregatException;
 
+
+import fr.izidor.hexalib.domain.ddd.exceptions.CodeException;
 
 public abstract class AggregatException extends RuntimeException {
 
-    protected Class<?> aggregateClass;
+    private final Class<?> aggregateClass;
     public final CodeException codeException;
 
 

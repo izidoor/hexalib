@@ -24,7 +24,7 @@ public record AppCommand(
 ) implements ApplicationCommand {
 
 
-    public static AppCommand START(final Command command, final String userId, final String endpoint) {
+    public static AppCommand INIT(final Command command, final String userId, final String endpoint) {
         return new AppCommand(
                 UUID.randomUUID(),
                 CommandPhase.RECEIVED,

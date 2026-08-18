@@ -11,10 +11,7 @@ import java.util.UUID;
 
 public interface ApplicationCommand {
 
-    /**
-     * Identifiant de la commande. Partagé par les deux traces qu'elle produit,
-     * donc <strong>non unique</strong> dans le journal.
-     */
+
     UUID id();
 
     CommandPhase phase();
@@ -23,7 +20,6 @@ public interface ApplicationCommand {
 
     LocalDateTime receivedOn();
 
-    /** Renseigné uniquement sur une trace {@link CommandPhase#COMPLETED}, {@code null} sinon. */
     LocalDateTime completedOn();
 
     String endpoint();
