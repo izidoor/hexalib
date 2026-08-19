@@ -67,9 +67,15 @@ package (`cqrs/commandResult/`).
 
 Points structurants :
 
-- `AggregateRoot<ID>` accumule ses `DomainEvent` en interne ; `AbstractAggregateRootWithEvents`
-  fournit l'implémentation par défaut (liste défensive en lecture, `equals`/`hashCode` sur l'`id()`
-  seul, conformément à l'identité DDD).
+- `AggregateRoot<ID>` accumule ses `DomainEvent` non encore publiés, exposés par
+  `uncommittedEvents()` — le nom dit l'état, pas le contenu : ce qui reste à publier, pas l'historique
+  de l'agrégat. `AbstractAggregateRootWithEvents` en fournit l'implémentation (liste défensive
+  en lecture, `equals`/`hashCode` sur l'`id()` seul, conformément à l'identité DDD).
+- `addEvent`/`resetEvents` sont **abstraites, sans implémentation par défaut**, et c'est délibéré :
+  `uncommittedEvents()` rendant une copie défensive, un `default` de l'interface ne pourrait qu'écrire
+  dans cette copie et perdrait l'ajout en silence — l'interface n'a pas d'autre accès à l'état. La
+  mutation reste donc à la charge de l'implémentation, qui écrit dans sa liste interne. Ne pas
+  réintroduire de `default` ici.
 - Les événements se déclarent via `DomainEventsFactory.enqueue(descriptor).withPayload(p).on(agg)` —
   le builder attache l'événement à l'agrégat, il ne le retourne pas. `DomainEventBase` dérive `name()`
   du nom de classe simple et délègue `aggregateID()`/`occuredOn()` à `DomainEventMetaData`.
@@ -92,11 +98,17 @@ Points structurants :
   projet n'ayant pas de `module-info`. C'est la même raison qui regroupe `ExecutionResult` et ses
   deux variantes dans `applicationResult/` côté infra. L'axe de variation est la présence
   d'événements, pas le succès — le domaine n'a pas de variante d'échec.
-- **Les événements non publiés sont portés par l'agrégat**, jamais recopiés dans le résultat :
-  `AggregateRootResult.domainEvents()` les relit à chaque appel. `DDDEntityResult` en rend une liste
-  vide, et son constructeur canonique **refuse** une racine d'agrégat — Java ne sachant pas exprimer
-  « `DDDEntity` mais pas `AggregateRoot` », c'est la seule barrière possible contre une perte
-  silencieuse.
+- **Le transport des événements est porté par la variante, pas par l'interface** : `CommandResult`
+  ne déclare que `executedOn()` et `entity()`. Seul `AggregateRootResult` a un composant
+  `uncommittedEvents`, capturé sur l'agrégat par la fabrique `of(...)` au moment de la construction —
+  c'est donc un **instantané**, et non plus une relecture à chaque appel. `DDDEntityResult` n'a aucun
+  composant d'événements, et son constructeur canonique **refuse** une racine d'agrégat — Java ne
+  sachant pas exprimer « `DDDEntity` mais pas `AggregateRoot` », c'est la seule barrière possible
+  contre une perte silencieuse.
+- Conséquence côté infra : c'est le `Dispatcher` qui décide, par `switch` exhaustif sur la variante de
+  `CommandResult`, laquelle des deux fabriques `SuccessResult.of(...)` appeler — celle sans
+  événements (`List.of()`) ou celle qui relaie `uncommittedEvents`. Ajouter une variante à
+  `CommandResult` casse ce `switch`, volontairement.
 
 ### Annotations maison, pas de stéréotypes Spring
 

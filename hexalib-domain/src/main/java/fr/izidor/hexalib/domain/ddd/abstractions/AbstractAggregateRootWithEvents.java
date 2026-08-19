@@ -19,6 +19,16 @@ public abstract class AbstractAggregateRootWithEvents<ID extends EntityID<?>> im
         return new ArrayList<>(this.uncommittedEvents);
     }
 
+    @Override
+    public void addEvent(DomainEvent domainEvent) {
+        this.uncommittedEvents.add(domainEvent);
+    }
+
+    @Override
+    public void resetEvents() {
+        this.uncommittedEvents.clear();
+    }
+
 
     @Override
     public boolean equals(Object o) {

@@ -16,7 +16,7 @@ public record AggregateRootResult<A extends AggregateRoot<?>>(
 ) implements CommandResult<A> {
 
 
-    public static <A extends AggregateRoot<?>> AggregateRootResult<?> of(A aggregateRoot) {
+    public static <A extends AggregateRoot<?>> AggregateRootResult<A> of(A aggregateRoot) {
         return new AggregateRootResult<>(LocalDateTime.now(), aggregateRoot, aggregateRoot.uncommittedEvents());
     }
 

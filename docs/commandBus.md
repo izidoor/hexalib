@@ -41,8 +41,10 @@ Deux niveaux distincts, à ne pas confondre :
 - `CommandResult` (domaine) — ce que retourne un `CommandHandler`. **Scellée** :
   `permits AggregateRootResult, DDDEntityResult`. Son axe de variation est la présence d'événements,
   pas le succès : le domaine n'a pas de variante d'échec, les erreurs voyagent en exception jusqu'à
-  `UnitOfWorkMiddleware`. Une seule donnée est transmise, l'entité — les événements non publiés
-  restent portés par l'agrégat et sont relus à chaque appel de `domainEvents()`.
+  `UnitOfWorkMiddleware`. L'interface ne déclare que le strict commun — `executedOn()` et `entity()` ;
+  le transport des événements appartient à la seule variante `AggregateRootResult`, dont le composant
+  `uncommittedEvents` est **capturé sur l'agrégat par la fabrique** `of(...)`. C'est un instantané pris
+  au retour du handler : muter l'agrégat après coup ne changera plus ce que le bus publiera.
 - `ExecutionResult` (infra) — interface **sealed** `permits SuccessResult, ErrorResult`, ce que
   retourne le bus. Le pattern matching exhaustif sur `switch` dans les middlewares dépend de ce
   scellement : ajouter une implémentation casse tous les `switch` existants (volontairement).
@@ -51,12 +53,30 @@ Deux niveaux distincts, à ne pas confondre :
 `SuccessResult`, `false` sur `ErrorResult`. Il ne se renseigne donc pas à la construction, et aucune
 fabrique ne peut produire un résultat incohérent avec son type.
 
-`SuccessResult.aggregateId` est un `String` qui porte la **valeur brute** de l'identifiant, obtenue
-par `EntityID.value()` et non par le `toString()` du value object : le journal contient `3f2a…` et
-non `CustomerId[value=3f2a…]`. C'est le seul endroit de l'infra qui déballe une identité — le reste
-de la chaîne manipule le value object.
+`SuccessResult` porte `commandId`, `userId`, `executedOn`, l'`aggregate` et la liste
+`uncommittedEvents`. Le value object d'identité n'est pas déballé : l'entité complète est transmise,
+et c'est à l'appelant d'en tirer ce dont il a besoin (`s.aggregate().id().value()`).
 
-`DomainEventPublisherMiddleware` lit les événements sur `SuccessResult.domainEvents()`, qui les tient
-de `CommandResult.domainEvents()`, qui les relit sur l'agrégat. Une seule source de vérité tout du
-long : l'agrégat. Un référentiel modélisé en `DDDEntity` traverse ce middleware sans cas particulier,
-sa liste étant vide par construction.
+## Passage du domaine à l'infra
+
+`Dispatcher` est le point de traduction `CommandResult` → `SuccessResult`, par `switch` exhaustif sur
+la hiérarchie scellée :
+
+```java
+return switch (commandResult) {
+    case DDDEntityResult r    -> SuccessResult.of(appCommand, r);
+    case AggregateRootResult r -> SuccessResult.of(appCommand, r, r.uncommittedEvents());
+};
+```
+
+Deux fabriques `SuccessResult.of(...)` plutôt qu'une seule : la variante à deux arguments force
+`uncommittedEvents` à `List.of()`. Un référentiel modélisé en `DDDEntity` ne peut donc pas remonter
+d'événements, et le middleware de publication n'a pas de cas particulier à traiter pour lui.
+
+`DomainEventPublisherMiddleware` lit `SuccessResult.uncommittedEvents()` et **retourne immédiatement
+si la liste est vide**, avant même de parcourir les listeners. La liste est celle figée par le
+`Dispatcher` : le middleware ne consulte jamais l'agrégat.
+
+À noter : la publication ne solde pas les événements. `AggregateRoot.resetEvents()` existe mais
+n'est appelé nulle part dans la chaîne — c'est à l'adaptateur de persistance ou à l'agrégat lui-même
+d'en décider.

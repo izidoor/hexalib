@@ -1,6 +1,5 @@
 package fr.izidor.hexalib.infra.applicationResult;
 
-import fr.izidor.hexalib.domain.cqrs.commandResult.AggregateRootResult;
 import fr.izidor.hexalib.infra.applicationCommand.ApplicationCommand;
 import fr.izidor.hexalib.domain.cqrs.commandResult.CommandResult;
 import fr.izidor.hexalib.domain.ddd.interfaces.DDDEntity;
@@ -25,11 +24,11 @@ public record SuccessResult<E extends DDDEntity<?>>(
     }
 
     /**
-     * Fabrique SANS Domain Events.
-     * @param applicationCommand
-     * @param commandResult
-     * @param domainEvents
-     * @return
+     * Fabrique SANS Domain Events : le résultat porte {@code List.of()}, quoi que sache l'entité.
+     * Réservée aux {@code DDDEntityResult}, qui n'ont pas d'événements par construction.
+     *
+     * @param applicationCommand la commande applicative à l'origine de l'exécution
+     * @param commandResult      le résultat rendu par le {@code CommandHandler}
      */
     public static SuccessResult of(ApplicationCommand applicationCommand, CommandResult commandResult) {
         return SuccessResult.builder()
@@ -43,11 +42,11 @@ public record SuccessResult<E extends DDDEntity<?>>(
 
 
     /**
-     * Fabrique avec Domain Events
-     * @param applicationCommand
-     * @param commandResult
-     * @param domainEvents
-     * @return
+     * Fabrique AVEC Domain Events, appelée pour un {@code AggregateRootResult}.
+     *
+     * @param applicationCommand la commande applicative à l'origine de l'exécution
+     * @param commandResult      le résultat rendu par le {@code CommandHandler}
+     * @param uncommittedEvents  les événements à publier, tels que capturés par le résultat
      */
     public static SuccessResult of(ApplicationCommand applicationCommand, CommandResult commandResult, List<DomainEvent> uncommittedEvents) {
         return SuccessResult.builder()
@@ -57,15 +56,6 @@ public record SuccessResult<E extends DDDEntity<?>>(
                 .aggregate(commandResult.entity())
                 .uncommittedEvents(uncommittedEvents)
                 .build();
-    }
-
-
-    /**
-     * Rend la valeur brute de l'identifiant, et non le {@code toString()} du value object —
-     * le journal des commandes porte {@code 3f2a…} plutôt que {@code CustomerId[value=3f2a…]}.
-     */
-    private static String aggregateIdOf(DDDEntity<?> aggregate) {
-        return String.valueOf(aggregate.id().value());
     }
 
 }

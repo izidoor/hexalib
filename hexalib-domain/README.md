@@ -92,6 +92,16 @@ public class Customer extends AbstractAggregateRootWithEvents<CustomerId> {
 }
 ```
 
+`AbstractAggregateRootWithEvents` tient la liste des événements **non encore publiés**, exposée par
+`uncommittedEvents()` en copie défensive. Le nom décrit un état, pas un contenu : ce qui reste à
+publier, et non l'historique de l'agrégat.
+
+La lecture étant défensive, `uncommittedEvents().add(...)` n'ajoute rien à l'agrégat : `addEvent(...)`
+est le seul point d'entrée, et `resetEvents()` le seul moyen de solder la liste. C'est pourquoi ces
+deux méthodes sont **abstraites** sur `AggregateRoot` — implémenter cette interface sans passer par
+`AbstractAggregateRootWithEvents` oblige à écrire soi-même la mutation, plutôt qu'à hériter d'un
+`default` structurellement incapable d'atteindre l'état.
+
 ## Événement
 
 ```java
@@ -142,13 +152,15 @@ est la présence d'événements, pas le succès — le domaine n'a pas de varian
 voyagent en exception jusqu'à `UnitOfWorkMiddleware`.
 
 ```java
-return AggregateRootResult.of(customer);   // événements relus sur la racine
+return AggregateRootResult.of(customer);   // capture les événements non publiés de la racine
 return DDDEntityResult.of(country);        // référentiel : aucun événement
 ```
 
-Une seule donnée est transmise dans les deux cas : l'entité. Les événements non publiés restent
-**portés par l'agrégat** — `AggregateRootResult.domainEvents()` les relit à chaque appel, sans en
-conserver de copie, et `DDDEntityResult.domainEvents()` rend une liste vide par construction.
+L'interface commune ne déclare que `executedOn()` et `entity()`. Le transport des événements n'y
+figure pas : seul `AggregateRootResult` porte un composant `uncommittedEvents`, que la fabrique
+`of(...)` **lit sur l'agrégat au moment de la construction**. C'est un instantané — ce que le bus
+publiera est figé au retour du handler, pas relu plus tard. `DDDEntityResult`, lui, n'a aucun
+composant d'événements.
 
 Le scellement garantit qu'aucune troisième implémentation ne contournera ce contrat. Il permet
 aussi le `switch` exhaustif, sans `default` :
@@ -164,6 +176,9 @@ Java ne sait pas exprimer « `DDDEntity` mais pas `AggregateRoot` » : rien n'em
 d'emballer une racine dans un `DDDEntityResult`, ce qui perdrait ses événements. Le constructeur
 canonique de `DDDEntityResult` **rejette ce cas** avec un message explicite, plutôt que de le laisser
 échouer en silence.
+
+C'est aussi ce `switch` qu'exploite le `Dispatcher` de `hexalib-infra` pour décider s'il y a des
+événements à relayer au middleware de publication : la variante du résultat est le seul signal.
 
 ## Repository
 
