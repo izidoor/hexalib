@@ -40,7 +40,8 @@ public class DomainEventPublisherMiddleware implements CommandBusMiddleware {
 
     private ExecutionResult publishEventsAndNext(SuccessResult successResult) {
 
-        var events = successResult.aggregate().domainEvents();
+        // les événements sont portés par l'agrégat ; le résultat les relaie sans en garder copie
+        var events = successResult.domainEvents();
 
         events.forEach(event -> {
 

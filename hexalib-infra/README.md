@@ -46,7 +46,7 @@ public class CustomerController {
     public ResponseEntity<?> changeEmail(@PathVariable String id, @RequestBody EmailRequest body) {
 
         var result = commandBus.handle(
-                AppCommand.START(new ChangeEmail(id, body.email()), currentUserId(), "POST /customers/{id}/email"));
+                AppCommand.INIT(new ChangeEmail(id, body.email()), currentUserId(), "POST /customers/{id}/email"));
 
         return switch (result) {
             case SuccessResult s -> ResponseEntity.ok(s.aggregate());

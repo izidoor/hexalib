@@ -2,17 +2,18 @@ package fr.izidor.hexalib.domain.ddd.exceptions.aggregatWithIdException;
 
 import fr.izidor.hexalib.domain.ddd.exceptions.CodeException;
 import fr.izidor.hexalib.domain.ddd.exceptions.aggregatException.AggregatException;
+import fr.izidor.hexalib.domain.ddd.interfaces.EntityID;
 
-public abstract class AggregatWIthIdException extends AggregatException {
+public abstract class AggregatWithIdException extends AggregatException {
 
-    private final Object aggregateId;
+    private final EntityID<?> aggregateId;
 
-    protected AggregatWIthIdException(Class<?> aggregateClass, Object aggregateId,
+    protected AggregatWithIdException(Class<?> aggregateClass, EntityID<?> aggregateId,
                                       CodeException codeException, String message) {
         super(aggregateClass, codeException, message);
         this.aggregateId = aggregateId;
     }
 
 
-    public Object aggregateId() { return aggregateId; }
+    public EntityID<?> aggregateId() { return aggregateId; }
 }

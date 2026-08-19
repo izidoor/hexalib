@@ -2,7 +2,7 @@ package fr.izidor.hexalib.domain.ddd.interfaces;
 
 import java.time.LocalDateTime;
 
-public interface DomainEvent<A extends AggregateRoot<ID>, ID>  {
+public interface DomainEvent<A extends AggregateRoot<ID>, ID extends EntityID<?>>  {
     Class<A> aggregateClass();
     ID aggregateID();
     String name();

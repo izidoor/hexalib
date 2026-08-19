@@ -4,18 +4,18 @@ import fr.izidor.hexalib.domain.ddd.exceptions.aggregatWithIdException.AggregatN
 
 import java.util.Optional;
 
-public interface DDDRepository<A extends AggregateRoot<ID>, ID> {
+public interface DDDRepository<E extends DDDEntity<ID>, ID extends EntityID<?>> {
 
-    Class<A> aggregateClass();
+    Class<E> aggregateClass();
 
-    Optional<A> find(ID id);
+    Optional<E> find(ID id);
 
-    default A getOrThrow(ID id) {
+    default E getOrThrow(ID id) {
         return find(id).orElseThrow(() -> new AggregatNotFoundException(aggregateClass(), id,
-                "id inconnu : " + id.toString()));
+                "id inconnu : " + id.value()));
     }
 
-    A save(A aggregateRoot);
+    E save(E entity);
 
 
 }

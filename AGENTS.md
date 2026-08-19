@@ -62,7 +62,8 @@ mvn test -Dtest=MaClasseTest#unCas
 
 Trois domaines fonctionnels — `cqrs`, `ddd`, `hexagone` — chacun subdivisé par nature :
 `interfaces/`, `abstractions/`, `annotations/`, `exceptions/`. Toute nouvelle abstraction suit cette
-grille.
+grille, sauf lorsqu'une hiérarchie `sealed` impose de regrouper interface et variantes dans un même
+package (`cqrs/commandResult/`).
 
 Points structurants :
 
@@ -74,7 +75,28 @@ Points structurants :
   du nom de classe simple et délègue `aggregateID()`/`occuredOn()` à `DomainEventMetaData`.
 - Les exceptions métier (`AggregatException` et ses sous-classes — orthographe française « Aggregat »,
   volontaire) portent un `CodeException` qui est l'unique canal de traduction erreur métier → statut
-  HTTP. Le domaine ne connaît donc pas HTTP, seulement cet enum.
+  HTTP. Le domaine ne connaît donc pas HTTP, seulement cet enum. Elles se répartissent en **deux
+  sous-packages** sous `ddd.exceptions` : `aggregatException/` pour celles qui ne connaissent que la
+  classe d'agrégat, `aggregatWithIdException/` pour celles qui portent en plus l'identifiant de
+  l'instance fautive (`AggregatWithIdException.aggregateId()`, typé `EntityID<?>`). Placer une
+  nouvelle exception dans la branche correspondant à ce qu'elle sait, et non par thème fonctionnel.
+  Noter le cycle de packages assumé : `ddd.interfaces` dépend de `aggregatWithIdException` pour
+  `getOrThrow`, qui dépend en retour de `ddd.interfaces` pour `EntityID`.
+- `DDDRepository.find(id)` retourne un `Optional<E>` : c'est un port de lecture, l'absence n'y est pas
+  une erreur. La levée d'exception est offerte par le `default getOrThrow(id)`, qui s'appuie sur
+  `aggregateClass()` — d'où la présence de cet accesseur au contrat du repository. Son paramètre est
+  le value object d'identité (`ID extends EntityID<?>`), pas la valeur brute : deux entités bâties sur
+  le même type technique ne sont donc pas interchangeables à l'appel.
+- `CommandResult` est **scellée** (`permits AggregateRootResult, DDDEntityResult`) et vit dans
+  `cqrs/commandResult/` : `sealed` exige que toute la hiérarchie tienne dans un seul package, le
+  projet n'ayant pas de `module-info`. C'est la même raison qui regroupe `ExecutionResult` et ses
+  deux variantes dans `applicationResult/` côté infra. L'axe de variation est la présence
+  d'événements, pas le succès — le domaine n'a pas de variante d'échec.
+- **Les événements non publiés sont portés par l'agrégat**, jamais recopiés dans le résultat :
+  `AggregateRootResult.domainEvents()` les relit à chaque appel. `DDDEntityResult` en rend une liste
+  vide, et son constructeur canonique **refuse** une racine d'agrégat — Java ne sachant pas exprimer
+  « `DDDEntity` mais pas `AggregateRoot` », c'est la seule barrière possible contre une perte
+  silencieuse.
 
 ### Annotations maison, pas de stéréotypes Spring
 
@@ -119,7 +141,7 @@ code concerné.
 | Fichier | Contenu |
 | --- | --- |
 | [`docs/commandBus.md`](docs/commandBus.md) | Chaîne de middlewares du `CommandBus` et ordre figé dans son constructeur, avec les conséquences de cet ordre (publication des événements après commit, conversion des exceptions par `UnitOfWorkMiddleware`) ; résolution des handlers et listeners par égalité stricte de classe ; modèle de résultat à deux niveaux (`CommandResult` du domaine, `ExecutionResult` scellé de l'infra). |
-| [`docs/commandLogs.md`](docs/commandLogs.md) | Journal des commandes écrit par `LoggingMiddleware` via `AppCommandRepository` : positionnement en observabilité et non en conformité, cycle `START` → `withResult`, modèle append-only discriminé par `CommandPhase`, sémantique de `completedOn`, et isolation des pannes par `saveQuietly`. |
+| [`docs/commandLogs.md`](docs/commandLogs.md) | Journal des commandes écrit par `LoggingMiddleware` via `AppCommandRepository` : positionnement en observabilité et non en conformité, cycle `INIT` → `withResult`, modèle append-only discriminé par `CommandPhase`, sémantique de `completedOn`, et isolation des pannes par `saveQuietly`. |
 
 ### Tenir la doc à jour
 
@@ -150,5 +172,13 @@ au tableau ci-dessus.
   dans le `pluginManagement` du parent : le remonter appliquerait le processeur à `hexalib-domain`.
 - Fabriques statiques `of(...)` plutôt que constructeurs publics sur les records.
 - Jackson 3 (`tools.jackson.core`), pas `com.fasterxml.jackson`.
-- Le générique `ID` des agrégats n'est pas contraint : c'est l'application qui choisit son type
-  d'identifiant.
+- **Trois niveaux d'entité, opt-in** : `BaseEntity<ID>` (identité seule, `ID` non contraint) →
+  `DDDEntity<ID extends EntityID<?>>` (autonome, cible d'un `DDDRepository`) → `AggregateRoot<ID>`
+  (+ entités filles + événements). On ne paie que le niveau déclaré : un référentiel CRUD est un
+  simple `record` implémentant `DDDEntity`, sans héritage ni événements. Réserve de vocabulaire
+  assumée : une entité interne est une entité au sens DDD sans être une `DDDEntity` — le nom retient
+  l'appariement avec `DDDRepository`, le sens large est porté par `BaseEntity`.
+- **L'identité d'une entité autonome est un value object** : l'application choisit le type brut
+  (`UUID`, `Long`…) mais doit l'emballer dans un `EntityID<T>` — un `record`, pour l'`equals`/
+  `hashCode` dont dépendent les clés de `RepoInMemory`. L'accesseur du wrapper s'appelle `value()`
+  et non `id()`, sans quoi les appels deviennent `customer.id().id()`.

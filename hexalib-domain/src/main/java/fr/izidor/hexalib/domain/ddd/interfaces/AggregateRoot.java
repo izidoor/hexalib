@@ -2,7 +2,11 @@ package fr.izidor.hexalib.domain.ddd.interfaces;
 
 import java.util.List;
 
-public interface AggregateRoot<ID> extends DDDEntity<ID> {
+/**
+ * Racine d'agrégat : une {@link DDDEntity} qui gouverne des entités filles et accumule les
+ * événements de domaine non encore publiés.
+ */
+public interface AggregateRoot<ID extends EntityID<?>> extends DDDEntity<ID> {
 
     List<DomainEvent> domainEvents();
 

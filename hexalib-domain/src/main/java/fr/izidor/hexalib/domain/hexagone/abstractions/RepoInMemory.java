@@ -2,39 +2,40 @@ package fr.izidor.hexalib.domain.hexagone.abstractions;
 
 
 import fr.izidor.hexalib.domain.ddd.exceptions.aggregatException.AggregatStateException;
-import fr.izidor.hexalib.domain.ddd.interfaces.AggregateRoot;
+import fr.izidor.hexalib.domain.ddd.interfaces.DDDEntity;
 import fr.izidor.hexalib.domain.ddd.interfaces.DDDRepository;
+import fr.izidor.hexalib.domain.ddd.interfaces.EntityID;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Optional;
 
-public abstract class RepoInMemory<A extends AggregateRoot<ID>, ID>
-        implements DDDRepository<A,ID> {
+public abstract class RepoInMemory<E extends DDDEntity<ID>, ID extends EntityID<?>>
+        implements DDDRepository<E,ID> {
 
-    private final Class<A> aggregateClass;
-    private final HashMap<ID, A> repoInMemory = new HashMap<>();
+    private final Class<E> aggregateClass;
+    private final HashMap<ID, E> repoInMemory = new HashMap<>();
 
-    protected RepoInMemory(Class<A> aggregateClass) {
+    protected RepoInMemory(Class<E> aggregateClass) {
         this.aggregateClass = aggregateClass;
     }
 
     @Override
-    public Class<A> aggregateClass() {
+    public Class<E> aggregateClass() {
         return aggregateClass;
     }
 
-    public Collection<A> findAll() {
+    public Collection<E> findAll() {
         return this.repoInMemory.values();
     }
 
 
-    public Optional<A> find(ID id) {
+    public Optional<E> find(ID id) {
         return Optional.ofNullable(repoInMemory.get(id));
     }
 
 
-    public A save(A toSave) {
+    public E save(E toSave) {
         if (toSave == null) {
             throw new AggregatStateException(aggregateClass, "Entity cannot be null");
         }

@@ -9,12 +9,12 @@ notamment le fait qu'une trace perdue soit un incident d'exploitation, pas une f
 
 ## Cycle de vie d'une trace
 
-`AppCommand` est un record immuable suivant le cycle `START(command, userId, endpoint)` →
+`AppCommand` est un record immuable suivant le cycle `INIT(command, userId, endpoint)` →
 `withResult(executionResult)`, ce dernier produisant une nouvelle instance en phase `COMPLETED`,
 enrichie de `completedOn`, `isSuccess`, `codeException` et `error`. `withResult` fait partie du
 contrat `ApplicationCommand`, car `LoggingMiddleware` ne manipule que l'interface.
 
-**`LoggingMiddleware` sauvegarde deux fois** : l'instance `START` *avant* `next.handle()`, puis
+**`LoggingMiddleware` sauvegarde deux fois** : l'instance `INIT` *avant* `next.handle()`, puis
 l'instance résultat *après*. Une commande dont l'exécution ne revient jamais (`Error`, blocage, arrêt
 brutal) laisse donc quand même sa trace de réception.
 

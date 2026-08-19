@@ -2,11 +2,12 @@ package fr.izidor.hexalib.domain.ddd.abstractions;
 
 import fr.izidor.hexalib.domain.ddd.interfaces.AggregateRoot;
 import fr.izidor.hexalib.domain.ddd.interfaces.DomainEvent;
+import fr.izidor.hexalib.domain.ddd.interfaces.EntityID;
 import fr.izidor.hexalib.domain.ddd.interfaces.EventDescriptor;
 
 import java.time.LocalDateTime;
 
-public interface DomainEventBase<A extends AggregateRoot<ID>, ID> extends DomainEvent<A ,ID> {
+public interface DomainEventBase<A extends AggregateRoot<ID>, ID extends EntityID<?>> extends DomainEvent<A ,ID> {
 
     DomainEventMetaData<A, ID> metaData();
 

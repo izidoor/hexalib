@@ -38,8 +38,25 @@ super-classe ne recevra donc jamais une sous-classe. Un dispatch sans handler l�
 
 Deux niveaux distincts, à ne pas confondre :
 
-- `CommandResult` (domaine) — ce que retourne un `CommandHandler` : agrégat + événements.
-  `SuccessCommandResult.of(...)` en est la fabrique.
+- `CommandResult` (domaine) — ce que retourne un `CommandHandler`. **Scellée** :
+  `permits AggregateRootResult, DDDEntityResult`. Son axe de variation est la présence d'événements,
+  pas le succès : le domaine n'a pas de variante d'échec, les erreurs voyagent en exception jusqu'à
+  `UnitOfWorkMiddleware`. Une seule donnée est transmise, l'entité — les événements non publiés
+  restent portés par l'agrégat et sont relus à chaque appel de `domainEvents()`.
 - `ExecutionResult` (infra) — interface **sealed** `permits SuccessResult, ErrorResult`, ce que
   retourne le bus. Le pattern matching exhaustif sur `switch` dans les middlewares dépend de ce
   scellement : ajouter une implémentation casse tous les `switch` existants (volontairement).
+
+`isSuccess()` n'est pas un composant de record mais une **constante par implémentation** : `true` sur
+`SuccessResult`, `false` sur `ErrorResult`. Il ne se renseigne donc pas à la construction, et aucune
+fabrique ne peut produire un résultat incohérent avec son type.
+
+`SuccessResult.aggregateId` est un `String` qui porte la **valeur brute** de l'identifiant, obtenue
+par `EntityID.value()` et non par le `toString()` du value object : le journal contient `3f2a…` et
+non `CustomerId[value=3f2a…]`. C'est le seul endroit de l'infra qui déballe une identité — le reste
+de la chaîne manipule le value object.
+
+`DomainEventPublisherMiddleware` lit les événements sur `SuccessResult.domainEvents()`, qui les tient
+de `CommandResult.domainEvents()`, qui les relit sur l'agrégat. Une seule source de vérité tout du
+long : l'agrégat. Un référentiel modélisé en `DDDEntity` traverse ce middleware sans cas particulier,
+sa liste étant vide par construction.

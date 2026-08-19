@@ -2,13 +2,14 @@ package fr.izidor.hexalib.domain.ddd.abstractions;
 
 import fr.izidor.hexalib.domain.ddd.interfaces.AggregateRoot;
 import fr.izidor.hexalib.domain.ddd.interfaces.DomainEvent;
+import fr.izidor.hexalib.domain.ddd.interfaces.EntityID;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 
-public abstract class AbstractAggregateRootWithEvents<ID> implements AggregateRoot<ID> {
+public abstract class AbstractAggregateRootWithEvents<ID extends EntityID<?>> implements AggregateRoot<ID> {
 
     protected List<DomainEvent> domainEvents = new ArrayList<>();
 
