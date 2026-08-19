@@ -24,11 +24,8 @@ public record SuccessResult<E extends DDDEntity<?>>(
     }
 
     /**
-     * Fabrique SANS Domain Events : le résultat porte {@code List.of()}, quoi que sache l'entité.
-     * Réservée aux {@code DDDEntityResult}, qui n'ont pas d'événements par construction.
-     *
-     * @param applicationCommand la commande applicative à l'origine de l'exécution
-     * @param commandResult      le résultat rendu par le {@code CommandHandler}
+     * Fabrique SANS Domain Events, pour un {@code DDDEntityResult} : la liste est forcée à
+     * {@code List.of()}.
      */
     public static SuccessResult of(ApplicationCommand applicationCommand, CommandResult commandResult) {
         return SuccessResult.builder()
@@ -42,11 +39,7 @@ public record SuccessResult<E extends DDDEntity<?>>(
 
 
     /**
-     * Fabrique AVEC Domain Events, appelée pour un {@code AggregateRootResult}.
-     *
-     * @param applicationCommand la commande applicative à l'origine de l'exécution
-     * @param commandResult      le résultat rendu par le {@code CommandHandler}
-     * @param uncommittedEvents  les événements à publier, tels que capturés par le résultat
+     * Fabrique AVEC Domain Events, pour un {@code AggregateRootResult}.
      */
     public static SuccessResult of(ApplicationCommand applicationCommand, CommandResult commandResult, List<DomainEvent> uncommittedEvents) {
         return SuccessResult.builder()

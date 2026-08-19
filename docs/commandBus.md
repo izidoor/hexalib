@@ -43,8 +43,8 @@ Deux niveaux distincts, à ne pas confondre :
   pas le succès : le domaine n'a pas de variante d'échec, les erreurs voyagent en exception jusqu'à
   `UnitOfWorkMiddleware`. L'interface ne déclare que le strict commun — `executedOn()` et `entity()` ;
   le transport des événements appartient à la seule variante `AggregateRootResult`, dont le composant
-  `uncommittedEvents` est **capturé sur l'agrégat par la fabrique** `of(...)`. C'est un instantané pris
-  au retour du handler : muter l'agrégat après coup ne changera plus ce que le bus publiera.
+  `uncommittedEvents` est **capturé sur l'agrégat par la fabrique** `of(...)` : un instantané figé au
+  retour du handler.
 - `ExecutionResult` (infra) — interface **sealed** `permits SuccessResult, ErrorResult`, ce que
   retourne le bus. Le pattern matching exhaustif sur `switch` dans les middlewares dépend de ce
   scellement : ajouter une implémentation casse tous les `switch` existants (volontairement).
@@ -54,8 +54,8 @@ Deux niveaux distincts, à ne pas confondre :
 fabrique ne peut produire un résultat incohérent avec son type.
 
 `SuccessResult` porte `commandId`, `userId`, `executedOn`, l'`aggregate` et la liste
-`uncommittedEvents`. Le value object d'identité n'est pas déballé : l'entité complète est transmise,
-et c'est à l'appelant d'en tirer ce dont il a besoin (`s.aggregate().id().value()`).
+`uncommittedEvents`. L'entité y est transmise entière, identité comprise : c'est à l'appelant d'en
+déballer ce dont il a besoin (`s.aggregate().id().value()`).
 
 ## Passage du domaine à l'infra
 
@@ -69,14 +69,11 @@ return switch (commandResult) {
 };
 ```
 
-Deux fabriques `SuccessResult.of(...)` plutôt qu'une seule : la variante à deux arguments force
-`uncommittedEvents` à `List.of()`. Un référentiel modélisé en `DDDEntity` ne peut donc pas remonter
-d'événements, et le middleware de publication n'a pas de cas particulier à traiter pour lui.
+La fabrique à deux arguments force `uncommittedEvents` à `List.of()` : un référentiel modélisé en
+`DDDEntity` ne remonte jamais d'événements.
 
-`DomainEventPublisherMiddleware` lit `SuccessResult.uncommittedEvents()` et **retourne immédiatement
-si la liste est vide**, avant même de parcourir les listeners. La liste est celle figée par le
-`Dispatcher` : le middleware ne consulte jamais l'agrégat.
+`DomainEventPublisherMiddleware` lit `SuccessResult.uncommittedEvents()` et sort immédiatement sur
+liste vide. Il ne consulte jamais l'agrégat : la liste figée par le `Dispatcher` est sa seule source.
 
-À noter : la publication ne solde pas les événements. `AggregateRoot.resetEvents()` existe mais
-n'est appelé nulle part dans la chaîne — c'est à l'adaptateur de persistance ou à l'agrégat lui-même
-d'en décider.
+La publication ne solde pas les événements : `AggregateRoot.resetEvents()` n'est appelé par aucun
+middleware, le moment revient à l'adaptateur de persistance ou à l'agrégat lui-même.

@@ -68,14 +68,10 @@ package (`cqrs/commandResult/`).
 Points structurants :
 
 - `AggregateRoot<ID>` accumule ses `DomainEvent` non encore publiés, exposés par
-  `uncommittedEvents()` — le nom dit l'état, pas le contenu : ce qui reste à publier, pas l'historique
-  de l'agrégat. `AbstractAggregateRootWithEvents` en fournit l'implémentation (liste défensive
-  en lecture, `equals`/`hashCode` sur l'`id()` seul, conformément à l'identité DDD).
-- `addEvent`/`resetEvents` sont **abstraites, sans implémentation par défaut**, et c'est délibéré :
-  `uncommittedEvents()` rendant une copie défensive, un `default` de l'interface ne pourrait qu'écrire
-  dans cette copie et perdrait l'ajout en silence — l'interface n'a pas d'autre accès à l'état. La
-  mutation reste donc à la charge de l'implémentation, qui écrit dans sa liste interne. Ne pas
-  réintroduire de `default` ici.
+  `uncommittedEvents()` — le nom dit l'état : ce qui reste à publier, pas l'historique de l'agrégat.
+  La lecture est une copie défensive, la mutation passe par `addEvent`/`resetEvents`.
+  `AbstractAggregateRootWithEvents` en fournit l'implémentation (`equals`/`hashCode` sur l'`id()`
+  seul, conformément à l'identité DDD).
 - Les événements se déclarent via `DomainEventsFactory.enqueue(descriptor).withPayload(p).on(agg)` —
   le builder attache l'événement à l'agrégat, il ne le retourne pas. `DomainEventBase` dérive `name()`
   du nom de classe simple et délègue `aggregateID()`/`occuredOn()` à `DomainEventMetaData`.
@@ -99,16 +95,14 @@ Points structurants :
   deux variantes dans `applicationResult/` côté infra. L'axe de variation est la présence
   d'événements, pas le succès — le domaine n'a pas de variante d'échec.
 - **Le transport des événements est porté par la variante, pas par l'interface** : `CommandResult`
-  ne déclare que `executedOn()` et `entity()`. Seul `AggregateRootResult` a un composant
-  `uncommittedEvents`, capturé sur l'agrégat par la fabrique `of(...)` au moment de la construction —
-  c'est donc un **instantané**, et non plus une relecture à chaque appel. `DDDEntityResult` n'a aucun
-  composant d'événements, et son constructeur canonique **refuse** une racine d'agrégat — Java ne
-  sachant pas exprimer « `DDDEntity` mais pas `AggregateRoot` », c'est la seule barrière possible
-  contre une perte silencieuse.
-- Conséquence côté infra : c'est le `Dispatcher` qui décide, par `switch` exhaustif sur la variante de
-  `CommandResult`, laquelle des deux fabriques `SuccessResult.of(...)` appeler — celle sans
-  événements (`List.of()`) ou celle qui relaie `uncommittedEvents`. Ajouter une variante à
-  `CommandResult` casse ce `switch`, volontairement.
+  ne déclare que `executedOn()` et `entity()`. Seul `AggregateRootResult` porte un composant
+  `uncommittedEvents`, capturé sur l'agrégat par la fabrique `of(...)` : un **instantané** figé au
+  retour du handler. `DDDEntityResult` n'a aucun composant d'événements, et son constructeur canonique
+  **refuse** une racine d'agrégat — Java ne sachant pas exprimer « `DDDEntity` mais pas
+  `AggregateRoot` », c'est la seule barrière possible contre une perte silencieuse.
+- Côté infra, `Dispatcher` choisit par `switch` sur la variante de `CommandResult` laquelle des deux
+  fabriques `SuccessResult.of(...)` appeler : celle sans événements, ou celle qui relaie
+  `uncommittedEvents`.
 
 ### Annotations maison, pas de stéréotypes Spring
 
@@ -166,13 +160,32 @@ changement.** Concrètement, selon ce qui est touché :
 - build, structure des POMs, conventions transverses → ce fichier (`AGENTS.md`).
 
 Quand une modification invalide une affirmation existante, la corriger plutôt que d'en ajouter une à
-côté : deux passes de cohérence ont déjà été nécessaires pour rattraper des sections devenues
-contradictoires.
+côté.
 
 **En cas de nouvelle fonctionnalité qui n'entre dans aucun fichier existant, demander à l'utilisateur
 s'il faut créer un nouveau `docs/<sujet>.md`** — ne pas le créer d'office, et ne pas non plus la
 diluer dans un fichier dont ce n'est pas le sujet. Si un nouveau fichier est créé, ajouter sa ligne
 au tableau ci-dessus.
+
+### Style d'écriture
+
+**La doc décrit le contrat actuel, et rien d'autre.** Elle s'écrit comme si le code avait toujours
+été dans son état présent :
+
+- **aucune trace des états antérieurs** — pas de « désormais », « ne … plus », « anciennement »,
+  « remplace X », ni de comparaison avec une API disparue. Un lecteur qui découvre le dépôt n'a pas
+  connaissance du passé, et l'historique est dans git ;
+- **aucune trace des correctifs** — un bug corrigé ne laisse rien derrière lui : ni description du
+  symptôme, ni mise en garde du type « ne pas réintroduire », ni justification défensive du code qui
+  le remplace ;
+- **ne pas justifier le code existant** ligne à ligne. On documente les **points d'architecture** :
+  contrats, invariants, frontières entre modules, et les *raisons* d'un choix de conception qui ne se
+  lisent pas dans le code (ordre figé des middlewares, scellement d'une hiérarchie, sens d'un nom).
+  Le reste appartient au code et à sa javadoc ;
+- **plus aucune référence à du code qui n'existe plus** : à chaque modification, vérifier que les
+  types et méthodes cités entre backticks existent encore.
+
+Ces règles valent aussi pour la javadoc.
 
 ## Conventions
 

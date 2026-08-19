@@ -81,11 +81,9 @@ Deux conséquences :
 `UnitOfWorkMiddleware` est le seul point de conversion exception → résultat : une `AggregatException`
 conserve son `CodeException`, toute autre `RuntimeException` devient `INTERNAL_ERROR_500`.
 
-Les événements publiés sont ceux que porte `SuccessResult.uncommittedEvents()`. Cette liste est
-remplie par le `Dispatcher`, qui distingue par `switch` les deux variantes de `CommandResult` : un
-`AggregateRootResult` relaie ses événements, un `DDDEntityResult` produit `List.of()`. Le middleware
-de publication sort immédiatement sur liste vide et ne consulte jamais l'agrégat — voir
-[commandBus.md](../docs/commandBus.md).
+Les événements publiés sont ceux que porte `SuccessResult.uncommittedEvents()`, liste remplie par le
+`Dispatcher` selon la variante de `CommandResult` : un `AggregateRootResult` relaie ses événements, un
+`DDDEntityResult` produit `List.of()`. Voir [commandBus.md](../docs/commandBus.md).
 
 ## Journal des commandes
 

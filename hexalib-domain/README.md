@@ -93,14 +93,9 @@ public class Customer extends AbstractAggregateRootWithEvents<CustomerId> {
 ```
 
 `AbstractAggregateRootWithEvents` tient la liste des événements **non encore publiés**, exposée par
-`uncommittedEvents()` en copie défensive. Le nom décrit un état, pas un contenu : ce qui reste à
-publier, et non l'historique de l'agrégat.
-
-La lecture étant défensive, `uncommittedEvents().add(...)` n'ajoute rien à l'agrégat : `addEvent(...)`
-est le seul point d'entrée, et `resetEvents()` le seul moyen de solder la liste. C'est pourquoi ces
-deux méthodes sont **abstraites** sur `AggregateRoot` — implémenter cette interface sans passer par
-`AbstractAggregateRootWithEvents` oblige à écrire soi-même la mutation, plutôt qu'à hériter d'un
-`default` structurellement incapable d'atteindre l'état.
+`uncommittedEvents()` en copie défensive. Le nom décrit un état : ce qui reste à publier, et non
+l'historique de l'agrégat. La lecture étant défensive, la mutation passe par `addEvent(...)` et
+`resetEvents()`, seuls points d'entrée.
 
 ## Événement
 
@@ -158,9 +153,8 @@ return DDDEntityResult.of(country);        // référentiel : aucun événement
 
 L'interface commune ne déclare que `executedOn()` et `entity()`. Le transport des événements n'y
 figure pas : seul `AggregateRootResult` porte un composant `uncommittedEvents`, que la fabrique
-`of(...)` **lit sur l'agrégat au moment de la construction**. C'est un instantané — ce que le bus
-publiera est figé au retour du handler, pas relu plus tard. `DDDEntityResult`, lui, n'a aucun
-composant d'événements.
+`of(...)` **lit sur l'agrégat au moment de la construction** — un instantané figé au retour du
+handler. `DDDEntityResult`, lui, n'a aucun composant d'événements.
 
 Le scellement garantit qu'aucune troisième implémentation ne contournera ce contrat. Il permet
 aussi le `switch` exhaustif, sans `default` :
@@ -177,8 +171,8 @@ d'emballer une racine dans un `DDDEntityResult`, ce qui perdrait ses événement
 canonique de `DDDEntityResult` **rejette ce cas** avec un message explicite, plutôt que de le laisser
 échouer en silence.
 
-C'est aussi ce `switch` qu'exploite le `Dispatcher` de `hexalib-infra` pour décider s'il y a des
-événements à relayer au middleware de publication : la variante du résultat est le seul signal.
+C'est ce même `switch` qu'exploite le `Dispatcher` de `hexalib-infra` : la variante du résultat est
+son seul signal pour savoir s'il y a des événements à relayer au middleware de publication.
 
 ## Repository
 
