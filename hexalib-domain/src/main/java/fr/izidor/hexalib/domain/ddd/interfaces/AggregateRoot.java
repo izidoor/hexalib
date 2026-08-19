@@ -8,14 +8,14 @@ import java.util.List;
  */
 public interface AggregateRoot<ID extends EntityID<?>> extends DDDEntity<ID> {
 
-    List<DomainEvent> domainEvents();
+    List<DomainEvent> uncommittedEvents();
 
     default void addEvent(DomainEvent domainEvent) {
-        domainEvents().add(domainEvent);
+        uncommittedEvents().add(domainEvent);
     }
 
     default void resetEvents() {
-        domainEvents().clear();
+        uncommittedEvents().clear();
     }
 
 }

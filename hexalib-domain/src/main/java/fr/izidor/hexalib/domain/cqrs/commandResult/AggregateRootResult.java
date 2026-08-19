@@ -7,20 +7,17 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Résultat portant une racine d'agrégat : ses événements sont relus sur elle à chaque appel.
+ * Résultat de l'exécution d'une commande portant sur une racine d'agrégat
  */
-public record AggregateRootResult<E extends AggregateRoot<?>>(
-        E aggregate,
-        LocalDateTime executedOn
-) implements CommandResult<E> {
+public record AggregateRootResult<A extends AggregateRoot<?>>(
+        LocalDateTime executedOn,
+        A entity,
+        List<DomainEvent> uncommittedEvents
+) implements CommandResult<A> {
 
-    @Override
-    public List<DomainEvent> domainEvents() {
-        return aggregate.domainEvents();
-    }
 
-    public static <E extends AggregateRoot<?>> AggregateRootResult<E> of(E aggregateRoot) {
-        return new AggregateRootResult<>(aggregateRoot, LocalDateTime.now());
+    public static <A extends AggregateRoot<?>> AggregateRootResult<?> of(A aggregateRoot) {
+        return new AggregateRootResult<>(LocalDateTime.now(), aggregateRoot, aggregateRoot.uncommittedEvents());
     }
 
 }

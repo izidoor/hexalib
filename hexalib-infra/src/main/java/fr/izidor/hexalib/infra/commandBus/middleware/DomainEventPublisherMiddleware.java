@@ -31,6 +31,7 @@ public class DomainEventPublisherMiddleware implements CommandBusMiddleware {
 
         var result = next.handle(appCommand);
 
+
         return switch (result) {
             case ErrorResult errorResult -> errorResult;
             case SuccessResult successResult -> publishEventsAndNext(successResult);
@@ -40,11 +41,11 @@ public class DomainEventPublisherMiddleware implements CommandBusMiddleware {
 
     private ExecutionResult publishEventsAndNext(SuccessResult successResult) {
 
-        // les événements sont portés par l'agrégat ; le résultat les relaie sans en garder copie
-        var events = successResult.domainEvents();
+        var uncommittedEvents = successResult.uncommittedEvents();
+        if (uncommittedEvents.isEmpty()) { return successResult; }
 
-        events.forEach(event -> {
 
+        uncommittedEvents.forEach(event -> {
             domainEventListeners.stream()
                     .filter(listenOn(event.getClass()))
                     .forEach(domainEventListener -> {
@@ -54,7 +55,6 @@ public class DomainEventPublisherMiddleware implements CommandBusMiddleware {
         });
 
         return successResult;
-
     }
 
 

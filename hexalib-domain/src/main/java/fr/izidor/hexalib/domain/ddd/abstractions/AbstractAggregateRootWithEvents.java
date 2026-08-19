@@ -11,22 +11,12 @@ import java.util.Objects;
 
 public abstract class AbstractAggregateRootWithEvents<ID extends EntityID<?>> implements AggregateRoot<ID> {
 
-    protected List<DomainEvent> domainEvents = new ArrayList<>();
+    protected List<DomainEvent> uncommittedEvents = new ArrayList<>();
 
 
     @Override
-    public List<DomainEvent> domainEvents() {
-        return new ArrayList<>(this.domainEvents);
-    }
-
-    @Override
-    public void addEvent(DomainEvent domainEvent) {
-        AggregateRoot.super.addEvent(domainEvent);
-    }
-
-    @Override
-    public void resetEvents() {
-        AggregateRoot.super.resetEvents();
+    public List<DomainEvent> uncommittedEvents() {
+        return new ArrayList<>(this.uncommittedEvents);
     }
 
 

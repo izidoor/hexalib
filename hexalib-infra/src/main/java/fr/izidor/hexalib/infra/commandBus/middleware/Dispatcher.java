@@ -1,6 +1,8 @@
 package fr.izidor.hexalib.infra.commandBus.middleware;
 
 
+import fr.izidor.hexalib.domain.cqrs.commandResult.AggregateRootResult;
+import fr.izidor.hexalib.domain.cqrs.commandResult.DDDEntityResult;
 import fr.izidor.hexalib.infra.applicationCommand.ApplicationCommand;
 import fr.izidor.hexalib.infra.applicationResult.ExecutionResult;
 import fr.izidor.hexalib.infra.applicationResult.SuccessResult;
@@ -26,14 +28,18 @@ public class Dispatcher implements CommandBusMiddleware {
     @Override
     public ExecutionResult handle(ApplicationCommand appCommand) {
 
-        var handler = commandHandlers.stream()
+        var commandHandler = commandHandlers.stream()
                 .filter(isHandlerFor(appCommand.commandContent().getClass()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("No command executor found for command " + appCommand.commandContent().getClass()));
 
-        var commandResult = handler.handle(appCommand.commandContent());
+        var commandResult = commandHandler.handle(appCommand.commandContent());
 
-        return SuccessResult.of(appCommand,  commandResult);
+        return switch (commandResult) {
+            case DDDEntityResult dddEntityResult -> SuccessResult.of(appCommand, dddEntityResult);
+            case AggregateRootResult aggregateRootResult -> SuccessResult.of(appCommand, aggregateRootResult, aggregateRootResult.uncommittedEvents());
+        };
+
     }
 
 

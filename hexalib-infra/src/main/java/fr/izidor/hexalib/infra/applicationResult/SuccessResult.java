@@ -1,5 +1,6 @@
 package fr.izidor.hexalib.infra.applicationResult;
 
+import fr.izidor.hexalib.domain.cqrs.commandResult.AggregateRootResult;
 import fr.izidor.hexalib.infra.applicationCommand.ApplicationCommand;
 import fr.izidor.hexalib.domain.cqrs.commandResult.CommandResult;
 import fr.izidor.hexalib.domain.ddd.interfaces.DDDEntity;
@@ -11,12 +12,11 @@ import java.util.List;
 
 @Builder
 public record SuccessResult<E extends DDDEntity<?>>(
-        LocalDateTime executedOn,
         String commandId,
         String userId,
-        String aggregateId,
+        LocalDateTime executedOn,
         E aggregate,
-        List<DomainEvent> domainEvents
+        List<DomainEvent> uncommittedEvents
 ) implements ExecutionResult {
 
     @Override
@@ -24,16 +24,38 @@ public record SuccessResult<E extends DDDEntity<?>>(
         return true;
     }
 
-
+    /**
+     * Fabrique SANS Domain Events.
+     * @param applicationCommand
+     * @param commandResult
+     * @param domainEvents
+     * @return
+     */
     public static SuccessResult of(ApplicationCommand applicationCommand, CommandResult commandResult) {
-
         return SuccessResult.builder()
-                .executedOn(commandResult.executedOn())
                 .commandId(applicationCommand.id().toString())
                 .userId(applicationCommand.userId())
-                .aggregateId(aggregateIdOf(commandResult.aggregate()))
-                .aggregate(commandResult.aggregate())
-                .domainEvents(commandResult.domainEvents())
+                .executedOn(commandResult.executedOn())
+                .aggregate(commandResult.entity())
+                .uncommittedEvents(List.of())
+                .build();
+    }
+
+
+    /**
+     * Fabrique avec Domain Events
+     * @param applicationCommand
+     * @param commandResult
+     * @param domainEvents
+     * @return
+     */
+    public static SuccessResult of(ApplicationCommand applicationCommand, CommandResult commandResult, List<DomainEvent> uncommittedEvents) {
+        return SuccessResult.builder()
+                .commandId(applicationCommand.id().toString())
+                .userId(applicationCommand.userId())
+                .executedOn(commandResult.executedOn())
+                .aggregate(commandResult.entity())
+                .uncommittedEvents(uncommittedEvents)
                 .build();
     }
 
