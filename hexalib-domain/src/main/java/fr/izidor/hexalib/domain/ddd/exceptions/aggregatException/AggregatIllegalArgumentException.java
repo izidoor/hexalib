@@ -5,7 +5,8 @@ import fr.izidor.hexalib.domain.ddd.exceptions.CodeException;
 public class AggregatIllegalArgumentException extends AggregatException {
 
     public AggregatIllegalArgumentException(Class<?> aggregateClass, String message) {
-        super(aggregateClass, CodeException.BAD_REQUEST_400, message);
+        super(aggregateClass, CodeException.UNPROCESSABLE_ENTITY_422,
+                "IllegalArgumentException : " + message);
     }
 
 }
