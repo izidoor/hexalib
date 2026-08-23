@@ -70,8 +70,12 @@ Points structurants :
 - `AggregateRoot<ID>` accumule ses `DomainEvent` non encore publiés, exposés par
   `uncommittedEvents()` — le nom dit l'état : ce qui reste à publier, pas l'historique de l'agrégat.
   La lecture est une copie défensive, la mutation passe par `addEvent`/`resetEvents`.
-  `AbstractAggregateRootWithEvents` en fournit l'implémentation (`equals`/`hashCode` sur l'`id()`
-  seul, conformément à l'identité DDD).
+  `AbstractAggregateRootWithEvents` en fournit l'implémentation.
+- L'égalité des entités est définie **une seule fois**, dans `AbstractDDDEntity` : `equals`/`hashCode`
+  sur l'`id()` seul, conformément à l'identité DDD, et sous condition de classe strictement identique.
+  `AbstractAggregateRootWithEvents` en hérite — la hiérarchie des abstractions suit celle des
+  interfaces (`AggregateRoot extends DDDEntity`), de sorte qu'une racine d'agrégat n'a pas sa propre
+  notion d'égalité. Un `id()` non affecté rend l'entité égale à elle seule.
 - Les événements se déclarent via `DomainEventsFactory.enqueue(descriptor).withPayload(p).on(agg)` —
   le builder attache l'événement à l'agrégat, il ne le retourne pas. `DomainEventBase` dérive `name()`
   du nom de classe simple et délègue `aggregateID()`/`occuredOn()` à `DomainEventMetaData`.
@@ -84,6 +88,18 @@ Points structurants :
   nouvelle exception dans la branche correspondant à ce qu'elle sait, et non par thème fonctionnel.
   Noter le cycle de packages assumé : `ddd.interfaces` dépend de `aggregatWithIdException` pour
   `getOrThrow`, qui dépend en retour de `ddd.interfaces` pour `EntityID`.
+- Le message d'une exception métier se compose en **trois segments** : `AggregatException` pose
+  `[NomDeLAgrégat]`, la sous-classe pose son étiquette sémantique (`NotFoundException : `), l'appelant
+  fournit la fin. On lit donc `[Customer] NotFoundException : id inconnu : 3f2a…`. L'étiquette est ce
+  qui survit au passage en `INTERNAL_ERROR_500` d'un log : le code seul ne dit pas la nature de
+  l'erreur, le message si. Toute nouvelle sous-classe préfixe la sienne.
+- Le choix du `CodeException` suit la nature de l'erreur, pas la commodité du statut :
+  `UNPROCESSABLE_ENTITY_422` pour une **violation d'invariant du domaine** — argument refusé
+  (`AggregatIllegalArgumentException`) ou transition d'état interdite (`AggregatStateException`) : la
+  requête est bien formée, c'est le métier qui la refuse. `BAD_REQUEST_400` reste à la couche
+  transport, qu'aucune exception du domaine n'occupe. Sur l'axe de l'accès, l'enum tranche une
+  ambiguïté d'usage courant : `UNAUTHORIZED_401` = non **authentifié** (d'où
+  `AggregatUnauthorizedException`), `FORBIDDEN_403` = authentifié mais non **autorisé**.
 - `DDDRepository.find(id)` retourne un `Optional<E>` : c'est un port de lecture, l'absence n'y est pas
   une erreur. La levée d'exception est offerte par le `default getOrThrow(id)`, qui s'appuie sur
   `aggregateClass()` — d'où la présence de cet accesseur au contrat du repository. Son paramètre est

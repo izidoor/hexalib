@@ -6,10 +6,13 @@ import fr.izidor.hexalib.domain.ddd.interfaces.EntityID;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
-
-public abstract class AbstractAggregateRootWithEvents<ID extends EntityID<?>> implements AggregateRoot<ID> {
+/**
+ * Implémentation de l'accumulation d'événements de domaine d'une {@link AggregateRoot}. L'égalité
+ * est celle de toute entité, héritée d'{@link AbstractDDDEntity} : l'{@code id()} seul.
+ */
+public abstract class AbstractAggregateRootWithEvents<ID extends EntityID<?>>
+        extends AbstractDDDEntity<ID> implements AggregateRoot<ID> {
 
     protected List<DomainEvent> uncommittedEvents = new ArrayList<>();
 
@@ -27,18 +30,5 @@ public abstract class AbstractAggregateRootWithEvents<ID extends EntityID<?>> im
     @Override
     public void resetEvents() {
         this.uncommittedEvents.clear();
-    }
-
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        AbstractAggregateRootWithEvents<?> that = (AbstractAggregateRootWithEvents<?>) o;
-        return Objects.equals(id(), that.id());
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(id());
     }
 }

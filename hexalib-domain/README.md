@@ -7,7 +7,7 @@ Abstractions DDD et CQRS, sans aucune dépendance. Java pur.
 | Package | Contenu |
 | --- | --- |
 | `ddd.interfaces` | `BaseEntity`, `DDDEntity`, `AggregateRoot`, `EntityID`, `DDDRepository`, `DomainEvent`, `DomainEventListener`, `DomainEventPublisher`, `EventDescriptor` |
-| `ddd.abstractions` | `AbstractAggregateRootWithEvents`, `DomainEventBase`, `DomainEventMetaData`, `DomainEventsFactory` |
+| `ddd.abstractions` | `AbstractDDDEntity`, `AbstractAggregateRootWithEvents`, `DomainEventBase`, `DomainEventMetaData`, `DomainEventsFactory` |
 | `ddd.exceptions` | `CodeException` |
 | `ddd.exceptions.aggregatException` | `AggregatException` et ses sous-classes sans identifiant |
 | `ddd.exceptions.aggregatWithIdException` | `AggregatWithIdException` et ses sous-classes portant l'`aggregateId` |
@@ -51,6 +51,9 @@ C'est le mécanisme d'**opt-in** de la lib : on ne paie que le niveau que l'on d
 // référentiel CRUD : un record, aucun héritage, aucun événement
 public record Country(CountryId id, String label) implements DDDEntity<CountryId> { }
 
+// entité autonome mutable : l'égalité vient du socle, sur l'identité seule
+public class Invoice extends AbstractDDDEntity<InvoiceId> { … }
+
 // vrai agrégat : racine, entités filles, événements
 public class Customer extends AbstractAggregateRootWithEvents<CustomerId> { … }
 
@@ -61,6 +64,20 @@ public record OrderLine(Integer id, Sku sku) implements BaseEntity<Integer> { }
 `DDDRepository<E extends DDDEntity<ID>, ID extends EntityID<?>>` se borne sur le niveau autonome :
 donner un repository à une `BaseEntity` est une erreur de compilation, ce qui matérialise la
 frontière d'agrégat dans le système de types.
+
+## Égalité
+
+`AbstractDDDEntity` fournit l'égalité attendue d'une entité : `equals`/`hashCode` sur l'`id()` seul,
+sous condition de classe strictement identique. Deux instances portant le même identifiant sont la
+même entité, quel que soit l'état de leurs attributs. `AbstractAggregateRootWithEvents` en hérite :
+une racine d'agrégat n'a pas d'égalité propre, et les événements accumulés n'y entrent pas.
+
+Une entité dont l'`id()` est `null` n'est égale qu'à elle-même — affecter l'`EntityID` à la
+construction lève la question.
+
+Un `record` ne pouvant hériter, `Country` ci-dessus porte l'égalité structurelle de **tous** ses
+composants, `label` compris : deux libellés différents pour le même `CountryId` y sont deux valeurs
+distinctes. Pour l'identité DDD sur une entité mutable, étendre `AbstractDDDEntity`.
 
 Une réserve de vocabulaire, assumée : au sens strict du DDD, `OrderLine` **est** une entité, et elle
 n'est pourtant pas une `DDDEntity`. Le nom retient l'appariement avec `DDDRepository`, qui sert le
@@ -210,11 +227,42 @@ Deux branches selon ce que l'exception sait de l'agrégat fautif :
 
 | Exception | Branche | Code |
 | --- | --- | --- |
-| `AggregatIllegalArgumentException` | `AggregatException` | `BAD_REQUEST_400` |
+| `AggregatIllegalArgumentException` | `AggregatException` | `UNPROCESSABLE_ENTITY_422` |
+| `AggregatStateException` | `AggregatException` | `UNPROCESSABLE_ENTITY_422` |
 | `AggregatUnauthorizedException` | `AggregatException` | `UNAUTHORIZED_401` |
-| `AggregatStateException` | `AggregatException` | `FORBIDDEN_403` |
 | `AggregatNotFoundException` | `AggregatWithIdException` | `NOT_FOUND_404` |
 | `AggregatConcurrentModificationException` | `AggregatWithIdException` | `CONFLICT_409` |
+
+### Message
+
+Le message se compose en trois segments, chacun posé par un niveau :
+
+```
+[Customer] NotFoundException : id inconnu : 3f2a…
+└────┬───┘ └───────┬────────┘ └──────┬─────────┘
+AggregatException  la sous-classe    l'appelant
+```
+
+`AggregatException` préfixe la classe d'agrégat entre crochets, chaque sous-classe préfixe son
+étiquette sémantique, et le message passé au constructeur ferme la phrase. L'étiquette porte la
+nature de l'erreur là où le `CodeException` ne la donne pas : dans un journal, ou après une
+conversion en `INTERNAL_ERROR_500`, elle reste lisible. Une exception ajoutée à la lib suit la même
+règle.
+
+### Choix du code
+
+Le `CodeException` suit la nature de l'erreur, pas la commodité du statut :
+
+- `UNPROCESSABLE_ENTITY_422` couvre la **violation d'invariant du domaine** — argument refusé ou
+  transition d'état interdite. La requête est bien formée ; c'est le métier qui la refuse. C'est le
+  code du cas courant côté agrégat.
+- `BAD_REQUEST_400` appartient à la couche transport — requête malformée, désérialisation, validation
+  de surface. Aucune exception du domaine ne l'occupe : il reste disponible pour l'application.
+- `UNAUTHORIZED_401` = non **authentifié** ; `FORBIDDEN_403` = authentifié mais non **autorisé**.
+  L'enum tranche l'ambiguïté d'usage courant, et `AggregatUnauthorizedException` se range du côté
+  de l'authentification.
+- `INTERNAL_ERROR_500` n'est levé par aucune exception métier : c'est le code que la couche infra
+  attribue à toute `RuntimeException` qui n'est pas une `AggregatException`.
 
 ## Test
 
