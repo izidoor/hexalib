@@ -1,10 +1,8 @@
 package fr.izidor.hexalib.infra.applicationCommand;
 
 
-import fr.izidor.hexalib.infra.applicationResult.ErrorResult;
-import fr.izidor.hexalib.infra.applicationResult.ExecutionResult;
+import fr.izidor.hexalib.infra.applicationResult.*;
 import fr.izidor.hexalib.domain.cqrs.interfaces.Command;
-import fr.izidor.hexalib.domain.ddd.exceptions.CodeException;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -19,8 +17,7 @@ public record AppCommand(
         String commandName,
         Command commandContent,
         Boolean isSuccess,
-        CodeException codeException,
-        String error
+        RuntimeException exception
 ) implements ApplicationCommand {
 
 
@@ -35,10 +32,11 @@ public record AppCommand(
                 command.getClass().getSimpleName(),
                 command,
                 null,
-                null,
                 null
         );
     }
+
+
 
 
     @Override
@@ -46,35 +44,72 @@ public record AppCommand(
 
         final LocalDateTime completedOn = LocalDateTime.now();
 
-        if (applicationExecutionResult.isSuccess()) {
-            return new AppCommand(
-                    id,
-                    CommandPhase.COMPLETED,
-                    userId,
-                    receivedOn,
-                    completedOn,
-                    endpoint,
-                    commandName,
-                    commandContent,
-                    true,
-                    null,
-                    null
-            );
-        }
 
-        return new AppCommand(
-                id,
-                CommandPhase.COMPLETED,
-                userId,
-                receivedOn,
-                completedOn,
-                endpoint,
-                commandName,
-                commandContent,
-                false,
-                ((ErrorResult) applicationExecutionResult).codeException(),
-                ((ErrorResult) applicationExecutionResult).error()
-        );
+        switch (applicationExecutionResult) {
+
+            case SuccessResult successResult -> {
+                return new AppCommand(
+                        id,
+                        CommandPhase.COMPLETED,
+                        userId,
+                        receivedOn,
+                        completedOn,
+                        endpoint,
+                        commandName,
+                        commandContent,
+                        true,
+                        null
+                );
+            }
+
+
+            case DomainExceptionResult domainExceptionResult -> {
+                return new AppCommand(
+                        id,
+                        CommandPhase.COMPLETED,
+                        userId,
+                        receivedOn,
+                        completedOn,
+                        endpoint,
+                        commandName,
+                        commandContent,
+                        false,
+                        domainExceptionResult.exception()
+                );
+            }
+
+            case ConflictResult cpnflictResult -> {
+                return new AppCommand(
+                        id,
+                        CommandPhase.COMPLETED,
+                        userId,
+                        receivedOn,
+                        completedOn,
+                        endpoint,
+                        commandName,
+                        commandContent,
+                        false,
+                        cpnflictResult.exception()
+                );
+            }
+
+
+            case ErrorResult errorResult -> {
+                return new AppCommand(
+                        id,
+                        CommandPhase.COMPLETED,
+                        userId,
+                        receivedOn,
+                        completedOn,
+                        endpoint,
+                        commandName,
+                        commandContent,
+                        false,
+                        errorResult.exception()
+                );
+            }
+
+        }
     }
 
 }

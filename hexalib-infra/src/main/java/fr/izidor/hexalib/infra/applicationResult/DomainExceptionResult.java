@@ -1,16 +1,17 @@
 package fr.izidor.hexalib.infra.applicationResult;
 
+import fr.izidor.hexalib.domain.ddd.exceptions.DomainException;
 import fr.izidor.hexalib.infra.applicationCommand.ApplicationCommand;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
 
 @Builder
-public record ErrorResult (
+public record DomainExceptionResult(
         LocalDateTime executedOn,
         String commandId,
         String userId,
-        RuntimeException exception
+        DomainException exception
 
 ) implements ExecutionResult {
 
@@ -21,10 +22,10 @@ public record ErrorResult (
 
 
 
-    public static ErrorResult of(ApplicationCommand applicationCommand,
-                                 RuntimeException exception) {
+    public static DomainExceptionResult of(ApplicationCommand applicationCommand,
+                                           DomainException exception) {
 
-        return ErrorResult.builder()
+        return DomainExceptionResult.builder()
                 .executedOn(LocalDateTime.now())
                 .commandId(applicationCommand.id().toString())
                 .userId(applicationCommand.userId())

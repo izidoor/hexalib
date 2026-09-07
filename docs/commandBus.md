@@ -24,7 +24,7 @@ Deux conséquences à garder en tête avant de modifier l'ordre :
    d'observabilité même en cas d'échec. Voir [commandLogs.md](commandLogs.md).
 
 `UnitOfWorkMiddleware` est le point unique de conversion exception → résultat : les `AggregatException`
-conservent leur `CodeException`, toute autre `RuntimeException` devient `INTERNAL_ERROR_500`. Au-delà
+conservent leur `HttpStatusCode`, toute autre `RuntimeException` devient `INTERNAL_ERROR_500`. Au-delà
 de ce middleware, plus rien ne remonte sous forme d'exception.
 
 ## Résolution par égalité stricte de classe

@@ -8,7 +8,7 @@ Abstractions DDD et CQRS, sans aucune dépendance. Java pur.
 | --- | --- |
 | `ddd.interfaces` | `BaseEntity`, `DDDEntity`, `AggregateRoot`, `EntityID`, `DDDRepository`, `DomainEvent`, `DomainEventListener`, `DomainEventPublisher`, `EventDescriptor` |
 | `ddd.abstractions` | `AbstractDDDEntity`, `AbstractAggregateRootWithEvents`, `DomainEventBase`, `DomainEventMetaData`, `DomainEventsFactory` |
-| `ddd.exceptions` | `CodeException` |
+| `ddd.exceptions` | `HttpStatusCode` |
 | `ddd.exceptions.aggregatException` | `AggregatException` et ses sous-classes sans identifiant |
 | `ddd.exceptions.aggregatWithIdException` | `AggregatWithIdException` et ses sous-classes portant l'`aggregateId` |
 | `cqrs.interfaces` | `Command`, `CommandHandler` |
@@ -215,7 +215,7 @@ exige l'agrégat, `getOrThrow` fait la levée à sa place — il construit l'`Ag
 
 ## Exceptions
 
-Chaque exception métier porte un `CodeException` qui sera traduit en statut par la couche infra.
+Chaque exception métier porte un `HttpStatusCode` qui sera traduit en statut par la couche infra.
 
 Deux branches selon ce que l'exception sait de l'agrégat fautif :
 
@@ -245,13 +245,13 @@ AggregatException  la sous-classe    l'appelant
 
 `AggregatException` préfixe la classe d'agrégat entre crochets, chaque sous-classe préfixe son
 étiquette sémantique, et le message passé au constructeur ferme la phrase. L'étiquette porte la
-nature de l'erreur là où le `CodeException` ne la donne pas : dans un journal, ou après une
+nature de l'erreur là où le `HttpStatusCode` ne la donne pas : dans un journal, ou après une
 conversion en `INTERNAL_ERROR_500`, elle reste lisible. Une exception ajoutée à la lib suit la même
 règle.
 
 ### Choix du code
 
-Le `CodeException` suit la nature de l'erreur, pas la commodité du statut :
+Le `HttpStatusCode` suit la nature de l'erreur, pas la commodité du statut :
 
 - `UNPROCESSABLE_ENTITY_422` couvre la **violation d'invariant du domaine** — argument refusé ou
   transition d'état interdite. La requête est bien formée ; c'est le métier qui la refuse. C'est le

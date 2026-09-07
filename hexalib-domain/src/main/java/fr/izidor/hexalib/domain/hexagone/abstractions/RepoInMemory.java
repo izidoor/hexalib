@@ -1,13 +1,13 @@
 package fr.izidor.hexalib.domain.hexagone.abstractions;
 
 
-import fr.izidor.hexalib.domain.ddd.exceptions.aggregatException.AggregatStateException;
 import fr.izidor.hexalib.domain.ddd.interfaces.DDDEntity;
 import fr.izidor.hexalib.domain.ddd.interfaces.DDDRepository;
 import fr.izidor.hexalib.domain.ddd.interfaces.EntityID;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Optional;
 
 public abstract class RepoInMemory<E extends DDDEntity<ID>, ID extends EntityID<?>>
@@ -36,9 +36,7 @@ public abstract class RepoInMemory<E extends DDDEntity<ID>, ID extends EntityID<
 
 
     public E save(E toSave) {
-        if (toSave == null) {
-            throw new AggregatStateException(aggregateClass, "Entity cannot be null");
-        }
+        Objects.requireNonNull(toSave,"Entity cannot be null" );
         repoInMemory.put(toSave.id(), toSave);
         return toSave;
     }

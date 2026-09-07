@@ -1,9 +1,7 @@
 package fr.izidor.hexalib.infra.commandBus.middleware;
 
 import fr.izidor.hexalib.infra.applicationCommand.ApplicationCommand;
-import fr.izidor.hexalib.infra.applicationResult.ErrorResult;
-import fr.izidor.hexalib.infra.applicationResult.ExecutionResult;
-import fr.izidor.hexalib.infra.applicationResult.SuccessResult;
+import fr.izidor.hexalib.infra.applicationResult.*;
 import fr.izidor.hexalib.infra.commandBus.CommandBusMiddleware;
 import fr.izidor.hexalib.domain.ddd.interfaces.DomainEvent;
 import fr.izidor.hexalib.domain.ddd.interfaces.DomainEventListener;
@@ -34,6 +32,8 @@ public class DomainEventPublisherMiddleware implements CommandBusMiddleware {
 
         return switch (result) {
             case ErrorResult errorResult -> errorResult;
+            case ConflictResult conflictResult -> conflictResult;
+            case DomainExceptionResult domainExceptionResult -> domainExceptionResult;
             case SuccessResult successResult -> publishEventsAndNext(successResult);
         };
     }

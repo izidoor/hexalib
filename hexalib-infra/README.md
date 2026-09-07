@@ -50,7 +50,7 @@ public class CustomerController {
 
         return switch (result) {
             case SuccessResult s -> ResponseEntity.ok(s.aggregate());
-            case ErrorResult e -> ResponseEntity.status(toHttpStatus(e.codeException())).body(e.error());
+            case ErrorResult e -> ResponseEntity.status(toHttpStatus(e.httpStatusCode())).body(e.error());
         };
     }
 }
@@ -79,7 +79,7 @@ Deux conséquences :
   en cas d'échec ou d'interruption.
 
 `UnitOfWorkMiddleware` est le seul point de conversion exception → résultat : une `AggregatException`
-conserve son `CodeException`, toute autre `RuntimeException` devient `INTERNAL_ERROR_500`.
+conserve son `HttpStatusCode`, toute autre `RuntimeException` devient `INTERNAL_ERROR_500`.
 
 Les événements publiés sont ceux que porte `SuccessResult.uncommittedEvents()`, liste remplie par le
 `Dispatcher` selon la variante de `CommandResult` : un `AggregateRootResult` relaie ses événements, un

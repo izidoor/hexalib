@@ -80,7 +80,7 @@ Points structurants :
   le builder attache l'événement à l'agrégat, il ne le retourne pas. `DomainEventBase` dérive `name()`
   du nom de classe simple et délègue `aggregateID()`/`occuredOn()` à `DomainEventMetaData`.
 - Les exceptions métier (`AggregatException` et ses sous-classes — orthographe française « Aggregat »,
-  volontaire) portent un `CodeException` qui est l'unique canal de traduction erreur métier → statut
+  volontaire) portent un `HttpStatusCode` qui est l'unique canal de traduction erreur métier → statut
   HTTP. Le domaine ne connaît donc pas HTTP, seulement cet enum. Elles se répartissent en **deux
   sous-packages** sous `ddd.exceptions` : `aggregatException/` pour celles qui ne connaissent que la
   classe d'agrégat, `aggregatWithIdException/` pour celles qui portent en plus l'identifiant de
@@ -93,7 +93,7 @@ Points structurants :
   fournit la fin. On lit donc `[Customer] NotFoundException : id inconnu : 3f2a…`. L'étiquette est ce
   qui survit au passage en `INTERNAL_ERROR_500` d'un log : le code seul ne dit pas la nature de
   l'erreur, le message si. Toute nouvelle sous-classe préfixe la sienne.
-- Le choix du `CodeException` suit la nature de l'erreur, pas la commodité du statut :
+- Le choix du `HttpStatusCode` suit la nature de l'erreur, pas la commodité du statut :
   `UNPROCESSABLE_ENTITY_422` pour une **violation d'invariant du domaine** — argument refusé
   (`AggregatIllegalArgumentException`) ou transition d'état interdite (`AggregatStateException`) : la
   requête est bien formée, c'est le métier qui la refuse. `BAD_REQUEST_400` reste à la couche

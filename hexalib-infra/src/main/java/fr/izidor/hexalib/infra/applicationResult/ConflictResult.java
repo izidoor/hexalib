@@ -6,7 +6,7 @@ import lombok.Builder;
 import java.time.LocalDateTime;
 
 @Builder
-public record ErrorResult (
+public record ConflictResult(
         LocalDateTime executedOn,
         String commandId,
         String userId,
@@ -21,10 +21,10 @@ public record ErrorResult (
 
 
 
-    public static ErrorResult of(ApplicationCommand applicationCommand,
-                                 RuntimeException exception) {
+    public static ConflictResult of(ApplicationCommand applicationCommand,
+                                    RuntimeException exception) {
 
-        return ErrorResult.builder()
+        return ConflictResult.builder()
                 .executedOn(LocalDateTime.now())
                 .commandId(applicationCommand.id().toString())
                 .userId(applicationCommand.userId())

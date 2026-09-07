@@ -3,7 +3,6 @@ package fr.izidor.hexalib.infra.applicationCommand;
 
 import fr.izidor.hexalib.infra.applicationResult.ExecutionResult;
 import fr.izidor.hexalib.domain.cqrs.interfaces.Command;
-import fr.izidor.hexalib.domain.ddd.exceptions.CodeException;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -30,9 +29,7 @@ public interface ApplicationCommand {
 
     Boolean isSuccess();
 
-    CodeException codeException();
-
-    String error();
+    RuntimeException exception();
 
     ApplicationCommand withResult(ExecutionResult executionResult);
 
